@@ -1,8 +1,9 @@
 package com.questapp_can.questapp.controllers;
 
 import java.util.List;
-import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,51 +14,47 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.questapp_can.questapp.entities.User;
-import com.questapp_can.questapp.repos.UserRepository;
+import com.questapp_can.questapp.services.UserService;
 
 @RestController
 @RequestMapping("/users")
 public class UserController {
-	
-	private UserRepository userRepository;
-	
-	public UserController (UserRepository userRepository) {
-		this.userRepository = userRepository;
+
+	private static final Logger logger = LoggerFactory.getLogger(UserController.class);
+	private UserService userService;
+
+	public UserController(UserService userService) {
+		this.userService = userService;
 	}
-	
+
 	@GetMapping
 	public List<User> getAllUsers() {
-		return userRepository.findAll();
+		return userService.getAllUsers();
 	}
-	
+
 	@PostMapping
 	public User createUser(@RequestBody User newUser) {
-		return userRepository.save(newUser);
-	}
-	
-	@GetMapping("/{userId}")
-	public User getOneUser(@PathVariable Long userId) {
-		return userRepository.findById(userId).orElse(null);
-	}
-	
-	@PutMapping("/{userId}")
-	public User updateOneUser(@PathVariable Long userId, @RequestBody User newUser) {
-		Optional<User> user = userRepository.findById(userId);
-		if(user.isPresent()) {
-			User foundUser = user.get();
-			foundUser.setUserName(newUser.getUserName());
-			foundUser.setPassword(newUser.getPassword());
-			userRepository.save(foundUser);
-			return foundUser;
-			
-		}else {
-			return null;
+		try {
+			return userService.saveOneUser(newUser);
+		} catch (Exception e) {
+			logger.error("Error occurred while creating user: {}", e.getMessage(), e);
+			throw new RuntimeException("Failed to create user. Please check the logs for details.");
 		}
 	}
-	
+
+	@GetMapping("/{userId}")
+	public User getOneUser(@PathVariable Long userId) {
+		return userService.getOneUserById(userId);
+	}
+
+	@PutMapping("/{userId}")
+	public User updateOneUser(@PathVariable Long userId, @RequestBody User newUser) {
+		return userService.updateOneUser(userId, newUser);
+	}
+
 	@DeleteMapping("/{userId}")
 	public void deleteOneUser(@PathVariable Long userId) {
-		userRepository.deleteById(userId);
+		userService.deleteOneUser(userId);
 	}
-	
+
 }
